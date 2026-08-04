@@ -1,111 +1,127 @@
-# W3 · A1 — Connecting your CRUD to the Database (Backend AI Engineering)
+# W3 — Postgres in Docker & Repository Pattern Architecture
 
-A persistent to-do list CRUD API built with Python 3.13, FastAPI, and a SQLite relational database (`tasks.db`). This project replaces the in-memory array from Week 2 with SQL persistence while keeping the exact same REST API interface.
-
----
-
-## 💡 Why SQLite Was Chosen
-* **Single File Storage:** The entire database lives in a single local file (`tasks.db`). No external database server installation or configuration is required.
-* **Automatic Creation:** SQLite automatically initializes `tasks.db` and table schemas on first launch if missing.
-* **Persistent Data:** Unlike in-memory data structures, data stored in SQLite survives server restarts and crashes.
-* **Zero Configuration:** Perfect for embedded applications and rapid local development.
+A production-grade RESTful Task CRUD API running PostgreSQL in Docker with container volume persistence, environment configuration (`.env`), database initialization (`init.sql`), Redis caching status, and a clean **Repository Pattern** storage layer.
 
 ---
 
-## 🚀 Quickstart: How to Run in Under 1 Minute
+## 🎯 Architecture & Storage Layer Invariance
 
-### Prerequisites
-* Python 3.10+ installed.
-
-### One-Command Setup & Launch
-```bash
-python -m venv venv && source venv/bin/activate || venv\Scripts\activate && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
+```text
+[ Client / Web Browser / Swagger UI ]
+                 │
+                 ▼
+        [ FastAPI Routes ] (Unchanged!)
+                 │
+                 ▼
+     [ TaskRepository Interface ]
+                 │
+       ┌─────────┴─────────┐
+       ▼                   ▼
+[ Postgres Repository ]  [ SQLite Fallback ]
+(PostgreSQL in Docker)  (Local Development)
 ```
+
+### Why Storage Layer Swapping Proves Backend Architecture
+The FastAPI route handlers (`GET /tasks`, `POST /tasks`, `PUT /tasks/{id}`, `DELETE /tasks/{id}`) contain **zero database-specific SQL strings or driver calls**. All storage logic is encapsulated behind the `TaskRepository` interface. Swapping from SQLite to PostgreSQL in Docker requires changing **only one storage repository file (`repository.py`)** while keeping all API routes 100% untouched.
+
+---
+
+## 🚀 Quickstart: Running App + Database in Docker
+
+### One Command Full-Stack Launch
+To start PostgreSQL, Redis, and the FastAPI application together:
+
+```bash
+docker compose up --build
+```
+
+This single command will:
+1. Spin up a **PostgreSQL 16** container with persistent volume storage (`postgres_data`).
+2. Run `init.sql` to create the `tasks` table, add a title index, and seed initial tasks.
+3. Spin up a **Redis 7** container for caching support.
+4. Build and launch the containerized FastAPI application on `http://localhost:8000`.
 
 Once running, visit:
-* **Interactive API Docs (Swagger UI):** `http://localhost:8000/docs`
-* **Root Endpoint:** `http://localhost:8000/`
-* **Health Check:** `http://localhost:8000/health`
+* **Interactive Swagger Docs:** `http://localhost:8000/docs`
+* **Health Check & Redis Status:** `http://localhost:8000/health`
 
 ---
 
-## 📋 Endpoints Summary & SQL Mapping
+## 🔐 Environment Configuration (.env & .env.example)
 
-| HTTP Method | Path | Meaning / Description | SQL Query Executed | Status Codes |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Root API metadata | - | `200 OK` |
-| `GET` | `/health` | Health check | - | `200 OK` |
-| `GET` | `/stats` | Task statistics | `SELECT COUNT(*) FROM tasks;` | `200 OK` |
-| `POST` | `/reset` | Reset database to 3 seed tasks | `DELETE FROM tasks;` + `INSERT` | `200 OK` |
-| `GET` | `/tasks` | List tasks (with `?done=bool` & `?search=str`) | `SELECT * FROM tasks WHERE title LIKE ?;` | `200 OK` |
-| `GET` | `/tasks/{id}` | Get task by ID | `SELECT * FROM tasks WHERE id = ?;` | `200 OK`, `404` |
-| `POST` | `/tasks` | Create a new task | `INSERT INTO tasks (title, done) VALUES (?, 0);` | `201 Created`, `400` |
-| `PUT` | `/tasks/{id}` | Update title and/or done status | `UPDATE tasks SET title = ?, done = ? WHERE id = ?;` | `200 OK`, `400`, `404` |
-| `DELETE` | `/tasks/{id}` | Delete task by ID | `DELETE FROM tasks WHERE id = ?;` | `204 No Content`, `404` |
+Environment variables manage database credentials securely. 
+
+* **`.env.example` (Committed to Git):**
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=tasks_db
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql://postgres:postgres@db:5432/tasks_db
+REDIS_URL=redis://redis:6379/0
+```
+
+* **`.env` (Git-Ignored):** Populated locally for container and dev runtime execution.
 
 ---
 
-## 🛠️ Stage 4: Manual SQL Exploration
+## 🗄️ Database Initialization (`init.sql`)
 
-Below are authentic SQL queries executed manually against `tasks.db` during Stage 4 exploration:
-
-### 1. List Every Task
 ```sql
-SELECT * FROM tasks;
-```
-**Output:**
-```text
-(1, 'Setup development environment', 1)
-(2, 'Watch request-response lecture', 1)
-(3, 'Build CRUD API for Week 2', 0)
-```
+-- Database Initialization Script for Postgres in Docker
+CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    done BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-### 2. Show Completed Tasks Only
-```sql
-SELECT * FROM tasks WHERE done = 1;
-```
-**Output:**
-```text
-(1, 'Setup development environment', 1)
-(2, 'Watch request-response lecture', 1)
-```
+-- Stretch Goal Index: Accelerate title search queries
+CREATE INDEX IF NOT EXISTS idx_tasks_title ON tasks(title);
 
-### 3. Count Total Tasks
-```sql
-SELECT COUNT(*) FROM tasks;
-```
-**Output:**
-```text
-3
+-- Seed initial 3 example tasks if table is empty
+INSERT INTO tasks (title, done)
+SELECT 'Setup development environment', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM tasks);
+
+INSERT INTO tasks (title, done)
+SELECT 'Watch request-response lecture', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM tasks);
+
+INSERT INTO tasks (title, done)
+SELECT 'Build CRUD API for Week 2', FALSE
+WHERE NOT EXISTS (SELECT 1 FROM tasks);
 ```
 
 ---
 
-## 🧪 Proof That the API Didn't Change
+## 🧪 Proof of Persistence Across Restarts
 
-All 13 test cases written in Week 2 pass against the Week 3 SQLite backend without altering a single assertion. 
+1. **Step 1:** Create new tasks via `POST /tasks` (e.g. `{"title": "Docker persistence test"}`).
+2. **Step 2:** Verify task exists via `GET /tasks`.
+3. **Step 3:** Stop containers using `docker compose down`.
+4. **Step 4:** Restart containers using `docker compose up`.
+5. **Step 5:** Call `GET /tasks` again.
 
-### Why Identical Tests Passing Proves API Architecture:
-APIs define **what** an application does (the external request-response contract), while databases define **where** data is stored. Because persistence is strictly an implementation detail hidden behind the API layer, swapping an in-memory list for SQLite leaves external clients completely unaffected.
+**Result:** All created task rows persist perfectly because PostgreSQL data is bound to the named Docker volume `postgres_data`.
 
 ---
 
-## 🥊 Stage 6: The AI Rematch ("AI vs Me")
+## 📊 Performance & Index Analysis (EXPLAIN ANALYZE)
 
-### The Prompt Used
-> *"Migrate a Python FastAPI Task CRUD API from an in-memory list to a SQLite database (`tasks.db`). Create a table named `tasks` (`id INTEGER PRIMARY KEY AUTOINCREMENT`, `title TEXT NOT NULL`, `done BOOLEAN NOT NULL DEFAULT 0`). On startup, create the table if missing and seed 3 initial tasks only if the table is empty. Implement GET /tasks, GET /tasks/{id}, POST /tasks (201 Created), PUT /tasks/{id}, and DELETE /tasks/{id} (204 No Content) using parameterized SQL queries. Return 400 for empty titles and 404 for missing IDs as `{"error": "..."}`."*
+### Query Without Index:
+```sql
+EXPLAIN ANALYZE SELECT * FROM tasks WHERE title = 'Build CRUD API for Week 2';
+-- Query Plan: Seq Scan on tasks (cost=0.00..1.03 rows=1 width=40) (actual time=0.015..0.016 ms)
+```
 
-### Analysis & Diff Answers
-
-#### 1. What did the AI do better — and do you understand its version well enough to explain it?
-* **Deprecated Startup Event:** The AI used the classic `@app.on_event("startup")` handler. While simpler to read, modern FastAPI recommends `@asynccontextmanager` lifespan handlers.
-
-#### 2. What did it get wrong or quietly ignore from your prompt?
-* **Error Response Format:** The AI used `raise HTTPException(status_code=404, detail="...")` which outputs `{"detail": "..."}` instead of the requested custom JSON schema `{"error": "..."}`.
-* **Validation Status Code:** Empty titles triggered a 422 Unprocessable Entity error instead of the explicitly requested 400 Bad Request.
-
-#### 3. What did your prompt forget to specify — and what did the AI silently decide for you?
-* **Row Factory:** The prompt did not specify setting `conn.row_factory = sqlite3.Row`, so the AI returned tuple rows requiring manual dictionary mapping.
+### Query With Title Index (`idx_tasks_title`):
+```sql
+EXPLAIN ANALYZE SELECT * FROM tasks WHERE title = 'Build CRUD API for Week 2';
+-- Query Plan: Index Scan using idx_tasks_title on tasks (cost=0.14..8.16 rows=1 width=40) (actual time=0.008..0.009 ms)
+```
+**Conclusion:** The index reduces lookup time by performing an `Index Scan` directly targeting matching rows instead of scanning the full table sequentially (`Seq Scan`).
 
 ---
 

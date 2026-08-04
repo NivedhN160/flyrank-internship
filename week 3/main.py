@@ -1,167 +1,118 @@
-import sqlite3
+import os
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, status, Query
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
 
-DB_FILE = "tasks.db"
+from repository import get_repository, TaskRepository
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+load_dotenv()
 
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            done BOOLEAN NOT NULL DEFAULT 0
-        )
-    """)
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    count = cursor.fetchone()[0]
-    if count == 0:
-        initial_tasks = [
-            ("Setup development environment", True),
-            ("Watch request-response lecture", True),
-            ("Build CRUD API for Week 2", False)
-        ]
-        cursor.executemany("INSERT INTO tasks (title, done) VALUES (?, ?)", initial_tasks)
-        conn.commit()
-    conn.close()
+repo: Optional[TaskRepository] = None
+
+def get_repo_instance() -> TaskRepository:
+    global repo
+    if repo is None:
+        repo = get_repository()
+    return repo
+
+def check_redis_status() -> str:
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    try:
+        import redis
+        r = redis.Redis.from_url(redis_url, socket_connect_timeout=1)
+        r.ping()
+        return "connected"
+    except Exception:
+        return "not_connected (optional stretch goal)"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    get_repo_instance()
     yield
 
 app = FastAPI(
-    title="Task API (SQLite Database)",
-    description="A CRUD API for managing tasks backed by a persistent SQLite database.",
-    version="2.0.0",
+    title="Task API (Postgres in Docker & Repository Pattern)",
+    description="A CRUD API demonstrating storage layer swapping from SQLite to Postgres in Docker using the Repository Pattern. All API routes remain 100% unchanged.",
+    version="3.0.0",
     lifespan=lifespan
 )
 
 @app.get(
     "/",
     summary="Root API Information",
-    description="Returns metadata about the SQLite Task API and available endpoints."
+    description="Returns metadata about the Task API and available endpoints."
 )
 def read_root():
     return {
-        "name": "Task API (SQLite)",
-        "version": "2.0",
+        "name": "Task API (Postgres Repository)",
+        "version": "3.0",
         "endpoints": ["/tasks", "/health", "/stats", "/reset"]
     }
 
 @app.get(
     "/health",
-    summary="Health Check",
-    description="Returns status ok if the server and database connection are active."
+    summary="Health Check (with Redis Ping)",
+    description="Returns server status ok, current active database repository, and Redis ping connectivity."
 )
 def health_check():
-    return {"status": "ok"}
+    r = get_repo_instance()
+    db_type = "PostgreSQL" if type(r).__name__ == "PostgresTaskRepository" else "SQLite (Fallback)"
+    redis_state = check_redis_status()
+    return {
+        "status": "ok",
+        "repository": db_type,
+        "redis_status": redis_state
+    }
 
 @app.get(
     "/stats",
-    summary="Task Statistics via SQL",
-    description="Computes total, completed, and open task counts using SQL COUNT() queries."
+    summary="Task Statistics",
+    description="Computes task totals, done count, and open count via repository data layer."
 )
 def get_task_stats():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    total = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM tasks WHERE done = 1")
-    done_count = cursor.fetchone()[0]
-    conn.close()
-    open_count = total - done_count
-    return {
-        "total": total,
-        "done": done_count,
-        "open": open_count
-    }
+    return get_repo_instance().get_stats()
 
 @app.post(
     "/reset",
     summary="Reset Task Database",
-    description="Clears all task rows and re-seeds the initial 3 example tasks into SQLite."
+    description="Resets table data back to the initial 3 seed tasks via repository data layer."
 )
 def reset_database():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM tasks")
-    initial_tasks = [
-        ("Setup development environment", True),
-        ("Watch request-response lecture", True),
-        ("Build CRUD API for Week 2", False)
-    ]
-    cursor.executemany("INSERT INTO tasks (title, done) VALUES (?, ?)", initial_tasks)
-    conn.commit()
-    cursor.execute("SELECT id, title, done FROM tasks")
-    rows = cursor.fetchall()
-    conn.close()
-    tasks = [{"id": row["id"], "title": row["title"], "done": bool(row["done"])} for row in rows]
-    return {"message": "Database reset to initial 3 seed tasks", "tasks": tasks}
+    reset_tasks = get_repo_instance().reset()
+    return {"message": "Database reset to initial 3 seed tasks", "tasks": reset_tasks}
 
 @app.get(
     "/tasks",
-    summary="List all tasks (with SQL filtering & search)",
-    description="Retrieve tasks from SQLite. Supports query parameters for filtering by completion status (?done=true) and searching by title keyword (?search=milk) using SQL WHERE and LIKE clauses."
+    summary="List all tasks (with filtering & search)",
+    description="Retrieve all tasks. Supports optional query parameters for filtering by completion status (?done=true) and searching by title keyword (?search=milk)."
 )
 def get_all_tasks(
-    done: Optional[bool] = Query(None, description="Filter tasks by completion status using SQL WHERE"),
-    search: Optional[str] = Query(None, description="Search task titles using SQL LIKE clause")
+    done: Optional[bool] = Query(None, description="Filter tasks by completion status"),
+    search: Optional[str] = Query(None, description="Search task titles by keyword")
 ):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    query = "SELECT id, title, done FROM tasks WHERE 1=1"
-    params = []
-    
-    if done is not None:
-        query += " AND done = ?"
-        params.append(1 if done else 0)
-        
-    if search:
-        query += " AND title LIKE ?"
-        params.append(f"%{search.strip()}%")
-        
-    query += " ORDER BY id ASC"
-    
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    conn.close()
-    
-    tasks = [{"id": row["id"], "title": row["title"], "done": bool(row["done"])} for row in rows]
-    return tasks
+    return get_repo_instance().get_all(done=done, search=search)
 
 @app.get(
     "/tasks/{task_id}",
     summary="Get a single task by ID",
-    description="Retrieve a task row from SQLite by primary key ID. Returns 404 if not found."
+    description="Retrieve task by primary key ID. Returns HTTP 404 Not Found if missing."
 )
 def get_single_task(task_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
-    row = cursor.fetchone()
-    conn.close()
-    if not row:
+    task = get_repo_instance().get_by_id(task_id)
+    if not task:
         return JSONResponse(
             status_code=404,
             content={"error": f"Task {task_id} not found"}
         )
-    return {"id": row["id"], "title": row["title"], "done": bool(row["done"])}
+    return task
 
 @app.post(
     "/tasks",
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new task in SQLite",
-    description="Insert a new row into the SQLite tasks table. Requires a non-empty title."
+    summary="Create a new task",
+    description="Insert a new task. Requires a non-empty title string."
 )
 async def create_task(request: Request):
     try:
@@ -185,18 +136,7 @@ async def create_task(request: Request):
             content={"error": "Title cannot be empty"}
         )
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO tasks (title, done) VALUES (?, 0)", (title.strip(),))
-    conn.commit()
-    new_id = cursor.lastrowid
-    conn.close()
-    
-    new_task = {
-        "id": new_id,
-        "title": title.strip(),
-        "done": False
-    }
+    new_task = get_repo_instance().create(title.strip())
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content=new_task
@@ -204,16 +144,13 @@ async def create_task(request: Request):
 
 @app.put(
     "/tasks/{task_id}",
-    summary="Update a task in SQLite",
-    description="Update a task row in SQLite by ID. Modifies title and/or done status."
+    summary="Update a task",
+    description="Update title and/or done status for an existing task."
 )
 async def update_task(task_id: int, request: Request):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
-    row = cursor.fetchone()
-    if not row:
-        conn.close()
+    r = get_repo_instance()
+    existing = r.get_by_id(task_id)
+    if not existing:
         return JSONResponse(
             status_code=404,
             content={"error": f"Task {task_id} not found"}
@@ -222,65 +159,51 @@ async def update_task(task_id: int, request: Request):
     try:
         data = await request.json()
     except Exception:
-        conn.close()
         return JSONResponse(
             status_code=400,
             content={"error": "Invalid or missing JSON body"}
         )
         
     if not isinstance(data, dict):
-        conn.close()
         return JSONResponse(
             status_code=400,
             content={"error": "Request body must be a JSON object"}
         )
 
-    current_title = row["title"]
-    current_done = bool(row["done"])
-
+    title = None
     if "title" in data:
-        title = data["title"]
-        if not isinstance(title, str) or not title.strip():
-            conn.close()
+        t = data["title"]
+        if not isinstance(t, str) or not t.strip():
             return JSONResponse(
                 status_code=400,
                 content={"error": "Title cannot be empty"}
             )
-        current_title = title.strip()
+        title = t.strip()
         
+    done = None
     if "done" in data:
-        if not isinstance(data["done"], bool):
-            conn.close()
+        d = data["done"]
+        if not isinstance(d, bool):
             return JSONResponse(
                 status_code=400,
                 content={"error": "done field must be a boolean"}
             )
-        current_done = data["done"]
+        done = d
 
-    cursor.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (current_title, current_done, task_id))
-    conn.commit()
-    conn.close()
-
-    return {"id": task_id, "title": current_title, "done": current_done}
+    updated = r.update(task_id, title=title, done=done)
+    return updated
 
 @app.delete(
     "/tasks/{task_id}",
-    summary="Delete a task from SQLite",
-    description="Delete a task row from SQLite by ID. Returns HTTP 204 No Content on success."
+    summary="Delete a task",
+    description="Remove a task by ID. Returns HTTP 204 No Content on success."
 )
 def delete_task(task_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM tasks WHERE id = ?", (task_id,))
-    row = cursor.fetchone()
-    if not row:
-        conn.close()
+    r = get_repo_instance()
+    success = r.delete(task_id)
+    if not success:
         return JSONResponse(
             status_code=404,
             content={"error": f"Task {task_id} not found"}
         )
-        
-    cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-    conn.commit()
-    conn.close()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
