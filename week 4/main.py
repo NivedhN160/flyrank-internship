@@ -1,8 +1,8 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Header
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -32,6 +32,25 @@ app = FastAPI(
 @app.get("/")
 def read_root():
     return {"message": "Auth API Server running and connected to Supabase"}
+
+@app.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+@app.get("/protected/profile")
+def protected_profile_unverified(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+    token = authorization.split("Bearer ")[1].strip()
+    if not token:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Access token required"}
+        )
+    return {"message": "Token present but unverified", "token_snippet": token[:10] + "..."}
 
 @app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
 async def signup(request: Request):
