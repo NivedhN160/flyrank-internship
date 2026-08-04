@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
-from fastapi import FastAPI, Request, Response, status, Header, Depends, HTTPException
+from fastapi import FastAPI, Request, Response, status, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -14,11 +14,14 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://your-project.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your-supabase-anon-key")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-security_bearer = HTTPBearer(auto_error=False)
+security_bearer = HTTPBearer(
+    auto_error=False,
+    description="Enter your Supabase JWT access_token obtained from /auth/login"
+)
 
 class AuthCredentials(BaseModel):
-    email: str = Field(..., example="user@example.com")
-    password: str = Field(..., example="password123")
+    email: str = Field(..., example="user@example.com", description="User email address")
+    password: str = Field(..., example="password123", description="User account password")
 
 async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer)) -> Dict[str, Any]:
     if not credentials or not credentials.credentials:
@@ -60,28 +63,39 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="Auth API (Supabase Integration)",
-    description="A secure FastAPI service handling user authentication with Supabase Auth.",
+    title="Auth API (Supabase Auth & Bearer JWT Protection)",
+    description="A secure FastAPI authentication service integrated with Supabase Auth as Identity Provider (IdP). Features Bearer JWT token verification, public/protected routes, reusable auth dependencies, and interactive Swagger UI authorization.",
     version="1.0.0",
     lifespan=lifespan
 )
 
-# Custom Exception Handler for HTTPException detail dict matching exact JSON output format
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     if isinstance(exc.detail, dict):
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
 
-@app.get("/")
+@app.get(
+    "/",
+    summary="Root API Information",
+    description="Returns metadata about the Auth API service."
+)
 def read_root():
     return {"message": "Auth API Server running and connected to Supabase"}
 
-@app.get("/public/info")
+@app.get(
+    "/public/info",
+    summary="Public Information Endpoint",
+    description="Public, unprotected route accessible to all strangers without authentication."
+)
 def public_info():
     return {"message": "Welcome stranger! This info is public."}
 
-@app.get("/protected/profile")
+@app.get(
+    "/protected/profile",
+    summary="User Profile Endpoint (Protected)",
+    description="Protected route requiring a valid Bearer JWT. Decodes and verifies token via Supabase Auth and returns user metadata."
+)
 def protected_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
     return {
         "id": current_user["id"],
@@ -90,7 +104,11 @@ def protected_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
         "role": current_user["role"]
     }
 
-@app.get("/protected/dashboard")
+@app.get(
+    "/protected/dashboard",
+    summary="User Dashboard Endpoint (Protected)",
+    description="Second protected route demonstrating reusable auth middleware protection across endpoints."
+)
 def protected_dashboard(current_user: Dict[str, Any] = Depends(get_current_user)):
     return {
         "message": f"Welcome to your private dashboard, {current_user['email']}!",
@@ -101,7 +119,12 @@ def protected_dashboard(current_user: Dict[str, Any] = Depends(get_current_user)
         }
     }
 
-@app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/auth/signup",
+    status_code=status.HTTP_201_CREATED,
+    summary="Sign Up New Account",
+    description="Registers a new user account with Supabase Auth. Requires non-empty email and password."
+)
 async def signup(request: Request):
     try:
         data = await request.json()
@@ -153,7 +176,11 @@ async def signup(request: Request):
             content={"error": error_msg}
         )
 
-@app.post("/auth/login")
+@app.post(
+    "/auth/login",
+    summary="Log In & Issue JWT",
+    description="Authenticates credentials with Supabase Auth. Returns JWT access_token and refresh_token on success."
+)
 async def login(request: Request):
     try:
         data = await request.json()
@@ -212,7 +239,12 @@ async def login(request: Request):
             content={"error": "Invalid login credentials"}
         )
 
-@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+@app.post(
+    "/auth/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Log Out User Session (Protected)",
+    description="Revokes current user session via Supabase Auth. Requires valid Bearer JWT token."
+)
 def logout(current_user: Dict[str, Any] = Depends(get_current_user)):
     try:
         supabase.auth.sign_out(current_user["token"])
