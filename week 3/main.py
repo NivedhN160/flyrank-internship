@@ -1,11 +1,17 @@
 import sqlite3
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 DB_FILE = "tasks.db"
 
-def init_db():
+def get_db_connection():
     conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
@@ -35,4 +41,36 @@ app = FastAPI(title="Task API (SQLite Database)", lifespan=lifespan)
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from Task API with SQLite"}
+    return {
+        "name": "Task API",
+        "version": "1.0",
+        "endpoints": ["/tasks"]
+    }
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+@app.get("/tasks")
+def get_all_tasks():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks")
+    rows = cursor.fetchall()
+    conn.close()
+    tasks = [{"id": row["id"], "title": row["title"], "done": bool(row["done"])} for row in rows]
+    return tasks
+
+@app.get("/tasks/{task_id}")
+def get_single_task(task_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+    return {"id": row["id"], "title": row["title"], "done": bool(row["done"])}
