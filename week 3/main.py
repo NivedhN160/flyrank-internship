@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 DB_FILE = "tasks.db"
@@ -74,3 +74,43 @@ def get_single_task(task_id: int):
             content={"error": f"Task {task_id} not found"}
         )
     return {"id": row["id"], "title": row["title"], "done": bool(row["done"])}
+
+@app.post("/tasks", status_code=status.HTTP_201_CREATED)
+async def create_task(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid or missing JSON body"}
+        )
+    
+    if not isinstance(data, dict) or "title" not in data:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Title is required"}
+        )
+    
+    title = data.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Title cannot be empty"}
+        )
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO tasks (title, done) VALUES (?, 0)", (title.strip(),))
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    
+    new_task = {
+        "id": new_id,
+        "title": title.strip(),
+        "done": False
+    }
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=new_task
+    )
