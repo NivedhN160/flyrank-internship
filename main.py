@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
 
 app = FastAPI(title="Task API")
@@ -69,4 +69,63 @@ async def create_task(request: Request):
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content=new_task
+    )
+
+@app.put("/tasks/{task_id}")
+async def update_task(task_id: int, request: Request):
+    target_task = None
+    for task in tasks_db:
+        if task["id"] == task_id:
+            target_task = task
+            break
+            
+    if not target_task:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+        
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid or missing JSON body"}
+        )
+        
+    if not isinstance(data, dict):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Request body must be a JSON object"}
+        )
+
+    if "title" in data:
+        title = data["title"]
+        if not isinstance(title, str) or not title.strip():
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title cannot be empty"}
+            )
+        target_task["title"] = title.strip()
+        
+    if "done" in data:
+        if not isinstance(data["done"], bool):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "done field must be a boolean"}
+            )
+        target_task["done"] = data["done"]
+
+    return target_task
+
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: int):
+    for index, task in enumerate(tasks_db):
+        if task["id"] == task_id:
+            tasks_db.pop(index)
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+            
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Task {task_id} not found"}
     )
