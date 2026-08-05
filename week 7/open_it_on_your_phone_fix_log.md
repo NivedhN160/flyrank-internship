@@ -34,7 +34,7 @@ All 11 links on the live portfolio have been clicked and verified:
 
 * [x] **Brand Logo (`/`):** Reloads homepage cleanly.
 * [x] **GitHub Profile (`https://github.com/NivedhN160`):** Resolves HTTP 200.
-* [x] **LinkedIn Profile (`https://linkedin.com/in/nivedh`):** Resolves HTTP 200.
+* [x] **LinkedIn Profile (`https://www.linkedin.com/in/nivedhn160/`):** Resolves HTTP 200.
 * [x] **CV / Proof Statement (`https://github.com/NivedhN160/...`):** Opens Week 1 Proof Statement markdown.
 * [x] **Contact Email (`mailto:nivedhn160@gmail.com`):** Opens default mail client.
 * [x] **Week 7 Case Study (BE-07 PDF Generator):** Opens Week 7 README spec.

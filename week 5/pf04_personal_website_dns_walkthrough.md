@@ -14,7 +14,7 @@
 ### Required Links & Positioning Verification
 * **One-Line Claim:** *"I build resilient, production-ready software from bare-metal C kernels to Dockerized FastAPI backends—and here is the verifiable code to prove it."*
 * **GitHub Link:** [https://github.com/NivedhN160](https://github.com/NivedhN160)
-* **LinkedIn Profile:** [https://linkedin.com/in/nivedh](https://linkedin.com/in/nivedh)
+* **LinkedIn Profile:** [https://www.linkedin.com/in/nivedhn160/](https://www.linkedin.com/in/nivedhn160/)
 * **CV / Proof Statement:** [https://github.com/NivedhN160/flyrank-internship/blob/main/week%201/Proof_Statement.md](https://github.com/NivedhN160/flyrank-internship/blob/main/week%201/Proof_Statement.md)
 * **Contact / Booking:** `mailto:nivedhn160@gmail.com`
 
