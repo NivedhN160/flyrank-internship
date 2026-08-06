@@ -7,6 +7,9 @@
   <meta name="description" content="Personal engineering portfolio of Nivedh. Building resilient software from bare-metal C kernels to Dockerized FastAPI backends, background job queues, and automated PDF report generators.">
   <meta name="author" content="Nivedh">
 
+  <!-- SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M20 44V20L36 36V20H44V44L28 28V44H20Z' fill='%233B82F6'/></svg>">
+
   <!-- Open Graph / Facebook Meta Tags -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://nivedh-portfolio.netlify.app/">
@@ -20,6 +23,9 @@
   <meta name="twitter:title" content="Nivedh — Systems & Backend Engineering Portfolio">
   <meta name="twitter:description" content="Building resilient software from bare-metal C kernels to Dockerized FastAPI backends, background job queues, and automated PDF report generators.">
   <meta name="twitter:image" content="https://nivedh-portfolio.netlify.app/og-preview.png">
+
+  <!-- Privacy-Friendly Free Analytics (GoatCounter) -->
+  <script data-goatcounter="https://nivedh-portfolio.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -360,6 +366,40 @@
       min-height: 120px;
     }
 
+    /* FlyRank Graduate Badge Styling */
+    .flyrank-badge-container {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .flyrank-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #0F172A, #1E293B);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .flyrank-badge:hover, .flyrank-badge:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--accent-color);
+      outline: 2px solid var(--accent-color);
+    }
+
+    .badge-icon {
+      color: #F59E0B;
+      font-size: 1.1rem;
+    }
+
     footer {
       border-top: 1px solid var(--border-color);
       padding: 32px 0;
@@ -561,7 +601,16 @@
 
   <footer>
     <div class="container footer-content">
-      <p>© 2026 Nivedh. FlyRank AI Internship — General AI Fluency & Backend AI Engineering</p>
+      <div>
+        <p>© 2026 Nivedh. FlyRank AI Internship — General AI Fluency & Backend AI Engineering</p>
+        
+        <!-- Official FlyRank Graduate Verification Badge -->
+        <div class="flyrank-badge-container">
+          <a href="https://flyrank.ai/verify/nivedh" target="_blank" rel="noopener noreferrer" class="flyrank-badge" aria-label="FlyRank Graduate Verification Badge">
+            <span class="badge-icon">⚡</span> Verified FlyRank AI Graduate — General AI Fluency & Backend Engineering
+          </a>
+        </div>
+      </div>
       <p><a href="https://github.com/NivedhN160" target="_blank" rel="noopener noreferrer" class="nav-link" aria-label="GitHub Profile Link">github.com/NivedhN160</a></p>
     </div>
   </footer>
