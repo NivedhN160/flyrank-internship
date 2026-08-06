@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nivedh — Systems & Backend Engineering Portfolio</title>
   <meta name="description" content="Personal engineering portfolio of Nivedh. Building resilient software from bare-metal C kernels to Dockerized FastAPI backends, background job queues, and automated PDF report generators.">
+  <meta name="author" content="Nivedh">
+
+  <!-- Open Graph / Facebook Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nivedh-portfolio.netlify.app/">
+  <meta property="og:title" content="Nivedh — Systems & Backend Engineering Portfolio">
+  <meta property="og:description" content="Building resilient software from bare-metal C kernels to Dockerized FastAPI backends, background job queues, and automated PDF report generators.">
+  <meta property="og:image" content="https://nivedh-portfolio.netlify.app/og-preview.png">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://nivedh-portfolio.netlify.app/">
+  <meta name="twitter:title" content="Nivedh — Systems & Backend Engineering Portfolio">
+  <meta name="twitter:description" content="Building resilient software from bare-metal C kernels to Dockerized FastAPI backends, background job queues, and automated PDF report generators.">
+  <meta name="twitter:image" content="https://nivedh-portfolio.netlify.app/og-preview.png">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -502,12 +518,12 @@
       </div>
     </section>
 
-    <!-- Week 8 Dynamic Feature: Working Contact Form (Netlify Forms Integration) -->
+    <!-- Week 8 Dynamic Feature: Working Contact Form (Netlify Forms Backend) -->
     <section id="contact-form-section" class="contact-section">
       <h2 class="section-title" style="margin-bottom: 8px;">📬 Get in Touch (Working Contact Form)</h2>
       <p style="color: var(--muted-color); margin-bottom: 24px;">Send a message directly via this form. Powered by Netlify Forms backend processing.</p>
 
-      <form name="contact" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
+      <form id="contact-form" name="contact" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" onsubmit="handleFormSubmit(event)">
         <input type="hidden" name="form-name" value="contact" />
         
         <p style="display:none">
@@ -517,7 +533,7 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="user-name" class="form-label">Your Name</label>
-            <input type="text" id="user-name" name="name" class="form-input" placeholder="e.g. Alex Smith" required />
+            <input type="text" id="user-name" name="name" class="form-input" placeholder="e.g. Alex Smith" minlength="2" required />
           </div>
 
           <div class="form-group">
@@ -528,15 +544,15 @@
 
         <div class="form-group">
           <label for="user-subject" class="form-label">Subject</label>
-          <input type="text" id="user-subject" name="subject" class="form-input" placeholder="Project Inquiry / Job Opportunity" required />
+          <input type="text" id="user-subject" name="subject" class="form-input" placeholder="Project Inquiry / Job Opportunity" minlength="3" required />
         </div>
 
         <div class="form-group">
           <label for="user-message" class="form-label">Message</label>
-          <textarea id="user-message" name="message" class="form-textarea" placeholder="Hello Nivedh, I'd like to discuss a project..." required></textarea>
+          <textarea id="user-message" name="message" class="form-textarea" placeholder="Hello Nivedh, I'd like to discuss a project..." minlength="5" required></textarea>
         </div>
 
-        <button type="submit" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">
+        <button type="submit" id="submit-btn" class="btn-primary" style="width: 100%; border: none; cursor: pointer;">
           Send Message to Nivedh ✉
         </button>
       </form>
@@ -550,5 +566,12 @@
     </div>
   </footer>
 
+  <script>
+    function handleFormSubmit(e) {
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Sending Message... ⏳';
+    }
+  </script>
 </body>
 </html>
