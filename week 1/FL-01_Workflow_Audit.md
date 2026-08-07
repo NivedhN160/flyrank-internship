@@ -43,7 +43,7 @@
 
 **Custom instructions**
 
-> I'm a B.Tech CSE student at Garden City University, Bengaluru, focused on AI/ML and full-stack development. I actively compete in hackathons and build systems-level and applied ML projects (e.g. a custom OS in C/Assembly, a local LLM orchestrator in Zig, RL trading systems). Prefer plain, paste-ready output. For coursework tasks, structure responses in clear report sections. For code, be direct and skip unnecessary caveats — I'll ask if I need more explanation. Current goals: ship hackathon projects fast, keep coursework reports accurate and well-structured, and make steady progress on personal systems projects.
+> I'm a B.Tech CSE student at Garden City University, Bengaluru (GPA 9.55+), and Backend AI Engineering Intern at FlyRank AI. I build production agentic backends (FastAPI + LLMs), bare-metal systems (N-OS in C/Assembly), transformers from scratch (ZigNGPT v2), and autonomous AI orchestrators (N.E.O.S with Groq Llama 3.3 70B & ChromaDB). Prefer plain, paste-ready output. For coursework tasks, structure responses in clear report sections. For code, be direct and skip unnecessary caveats — I'll ask if I need more explanation. Current goals: ship production AI backends, maintain 9.5+ GPA, and build scalable systems.
 
 ![
 ](image.png)
