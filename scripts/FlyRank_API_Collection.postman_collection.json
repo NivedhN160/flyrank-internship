@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "FlyRank AI Internship — API Collection",
+    "_postman_id": "flyrank-api-collection-2026",
+    "description": "Comprehensive Postman API Collection for all FlyRank Weekly Sprints and Production Capstones.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Capstone 1: Lead Widget API",
+      "item": [
+        {
+          "name": "Get Widget Script (widget.js)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8000/widget.js?id=demo-widget-id"
+          }
+        },
+        {
+          "name": "Submit Lead (POST /api/v1/leads)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Idempotency-Key", "value": "idem-test-101"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"widget_id\": \"demo-widget-id\", \"name\": \"Sarah Connor\", \"email\": \"sarah@skynet.ai\", \"message\": \"Deploying AI agent\", \"origin\": \"http://customer.local\"}"
+            },
+            "url": "http://localhost:8000/api/v1/leads"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capstone 2: Image Understanding Engine",
+      "item": [
+        {
+          "name": "Match Article with Image (GET /api/v1/posts/{id}/images)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/v1/posts/post-001/images"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capstone 3: LLM Billing Service",
+      "item": [
+        {
+          "name": "Generate Billable Completion (POST /api/v1/generate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Idempotency-Key", "value": "gen-key-101"}
+            ],
+            "url": "http://localhost:8000/api/v1/generate?prompt=Analyze+System&tenant_id=tenant-demo-1"
+          }
+        },
+        {
+          "name": "Get Tenant Usage Rollup (GET /api/v1/usage)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8000/api/v1/usage?tenant_id=tenant-demo-1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capstone 4: Social Publisher",
+      "item": [
+        {
+          "name": "Create Campaign (POST /api/v1/campaigns)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"FastAPI Architecture\", \"content\": \"Building microservices\", \"url\": \"https://nivedh-portfolio.netlify.app\"}"
+            },
+            "url": "http://localhost:8000/api/v1/campaigns"
+          }
+        }
+      ]
+    }
+  ]
+}
