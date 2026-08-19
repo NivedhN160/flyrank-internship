@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: flyrank-backend-suite
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - DATABASE_URL=postgresql://flyrank_user:flyrank_secure_pass_2026@postgres:5432/flyrank_db
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_STUB=0
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: flyrank-postgres
+    environment:
+      POSTGRES_USER: flyrank_user
+      POSTGRES_PASSWORD: flyrank_secure_pass_2026
+      POSTGRES_DB: flyrank_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: flyrank-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
