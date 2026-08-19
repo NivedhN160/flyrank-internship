@@ -1,0 +1,42 @@
+name: Capstone Production Verification Suite
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify-capstones:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Common Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest httpx fastapi uvicorn pydantic python-multipart reportlab cryptography beautifulsoup4
+
+    - name: Verify Capstone 1 (Lead Widget Platform)
+      run: |
+        cd "Backend AI Engineering Capstone"
+        pytest test_suite.py -v
+
+    - name: Verify Capstone 2 (AI Image Matching Engine)
+      run: |
+        cd "AI Image Understanding Content Matching Engine"
+        pytest test_suite.py -v
+
+    - name: Verify Capstone 3 (LLM Usage Metering & Billing)
+      run: |
+        cd "LLM Usage Metering & Billing Service"
+        pytest test_suite.py -v
+
+    - name: Verify Capstone 4 (Multi-Platform Social Publisher)
+      run: |
+        cd "Multi-Platform Social Campaign Publisher"
+        pytest test_suite.py -v
