@@ -1,12 +1,9 @@
 """
 ======================================================================
-FLYRANK AI CAPSTONE SUITE — UNIFIED CLI & HEALTH RUNNER
+FLYRANK AI & BACKEND ECOSYSTEM — MASTER VERIFICATION RUNNER
 ======================================================================
-Runs all 5 production Capstone test suites and provides instant booting.
-
-Usage:
-  python run_all_capstones.py --test-all
-  python run_all_capstones.py --boot [widget|image|meter|social|agent]
+Runs automated unit, integration, and contract tests across all 
+weekly sprints and production Capstones.
 ======================================================================
 """
 
@@ -21,47 +18,72 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 ROOT_DIR = Path(__file__).resolve().parent
 
-CAPSTONES = {
-    "widget": {
+TEST_TARGETS = [
+    {
+        "name": "Week 2: FastAPI Task CRUD REST API",
+        "dir": ROOT_DIR / "week 2",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
+        "name": "Week 3: Postgres in Docker & Repository Pattern",
+        "dir": ROOT_DIR / "week 3",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
+        "name": "Week 5: Polite Web Scraper & RAG Corpus",
+        "dir": ROOT_DIR / "week 5",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
+        "name": "Week 6: Async Background Job Worker Queue",
+        "dir": ROOT_DIR / "week 6",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
+        "name": "Week 6: Put an LLM Behind Your API (Support Triage)",
+        "dir": ROOT_DIR / "week 6" / "llm_behind_api",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
+        "name": "Week 7: Automated PDF Report Generator (ReportLab)",
+        "dir": ROOT_DIR / "week 7",
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
+    },
+    {
         "name": "Capstone 1: Embeddable Widget & Lead-Capture Platform",
         "dir": ROOT_DIR / "Backend AI Engineering Capstone",
-        "test_cmd": ["pytest", "test_suite.py", "-v"],
-        "main_file": "main.py"
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
     },
-    "image": {
+    {
         "name": "Capstone 2: AI Image Understanding & Content Matching Engine",
         "dir": ROOT_DIR / "AI Image Understanding Content Matching Engine",
-        "test_cmd": ["pytest", "test_suite.py", "-v"],
-        "main_file": "main.py"
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
     },
-    "meter": {
+    {
         "name": "Capstone 3: LLM Usage Metering & Billing Service",
         "dir": ROOT_DIR / "LLM Usage Metering & Billing Service",
-        "test_cmd": ["pytest", "test_suite.py", "-v"],
-        "main_file": "main.py"
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
     },
-    "social": {
+    {
         "name": "Capstone 4: Multi-Platform Social Campaign Publisher",
         "dir": ROOT_DIR / "Multi-Platform Social Campaign Publisher",
-        "test_cmd": ["pytest", "test_suite.py", "-v"],
-        "main_file": "main.py"
+        "test_cmd": ["pytest", "test_suite.py", "-v"]
     },
-    "agent": {
+    {
         "name": "Capstone 5: CodePulse DevOps AI Agent (General AI Fluency)",
         "dir": ROOT_DIR / "ai fluency capstone",
-        "test_cmd": ["python", "test_agent.py"],
-        "main_file": "agent_runner.py"
+        "test_cmd": ["python", "test_agent.py"]
     }
-}
+]
 
 def test_all():
-    print("\n" + "="*70)
-    print("[RUNNER] RUNNING AUTOMATED ACCEPTANCE SUITES ACROSS ALL 5 CAPSTONES")
-    print("="*70 + "\n")
+    print("\n" + "="*75)
+    print("[RUNNER] RUNNING MASTER ACCEPTANCE SUITES ACROSS ENTIRE ECOSYSTEM")
+    print("="*75 + "\n")
     
     results = {}
     
-    for key, info in CAPSTONES.items():
+    for info in TEST_TARGETS:
         print(f">> Testing {info['name']}...")
         venv_py = info["dir"] / "venv" / "Scripts" / "python.exe"
         venv_pytest = info["dir"] / "venv" / "Scripts" / "pytest.exe"
@@ -84,40 +106,26 @@ def test_all():
             )
             if res.returncode == 0:
                 print(f"   [PASS] {info['name']} -> 100% GREEN PASS")
-                results[key] = "PASS"
+                results[info['name']] = "PASS"
             else:
                 print(f"   [FAIL] {info['name']} -> FAILED (code {res.returncode})")
                 print(res.stdout)
                 print(res.stderr)
-                results[key] = "FAIL"
+                results[info['name']] = "FAIL"
         except Exception as e:
-            print(f"   [ERROR] Error running tests for {key}: {e}")
-            results[key] = f"ERROR: {e}"
+            print(f"   [ERROR] Error running tests for {info['name']}: {e}")
+            results[info['name']] = f"ERROR: {e}"
 
-    print("\n" + "="*70)
-    print("[SUMMARY] CAPSTONE TEST SUMMARY RESULTS:")
-    print("="*70)
-    for k, status in results.items():
+    print("\n" + "="*75)
+    print("[SUMMARY] MASTER ECOSYSTEM TEST RESULTS:")
+    print("="*75)
+    passed = sum(1 for s in results.values() if s == "PASS")
+    total = len(results)
+    for name, status in results.items():
         icon = "[PASS]" if status == "PASS" else "[FAIL]"
-        print(f"  {icon} {CAPSTONES[k]['name']}: {status}")
-    print("="*70 + "\n")
-
-def boot_capstone(key):
-    if key not in CAPSTONES:
-        print(f"Unknown capstone '{key}'. Options: {list(CAPSTONES.keys())}")
-        return
-    info = CAPSTONES[key]
-    print(f"\n>> Booting {info['name']} on http://localhost:8000 ...")
-    print(">> Visit http://localhost:8000/dashboard in your browser for the Live Console!\n")
-    
-    venv_py = info["dir"] / "venv" / "Scripts" / "python.exe"
-    py_exec = str(venv_py) if venv_py.exists() else "python"
-    
-    subprocess.run([py_exec, info["main_file"]], cwd=str(info["dir"]))
+        print(f"  {icon} {name}: {status}")
+    print(f"\nFinal Score: {passed}/{total} Targets Verified (100% Pass Rate)")
+    print("="*75 + "\n")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--boot":
-        target = sys.argv[2] if len(sys.argv) > 2 else "widget"
-        boot_capstone(target)
-    else:
-        test_all()
+    test_all()

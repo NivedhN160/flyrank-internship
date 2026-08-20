@@ -145,8 +145,13 @@ async def create_task(request: Request):
 
 @app.put(
     "/tasks/{task_id}",
-    summary="Update a task",
+    summary="Update a task (PUT)",
     description="Modify title and/or done status for an existing task. Returns 404 if task ID doesn't exist, or 400 for invalid body."
+)
+@app.patch(
+    "/tasks/{task_id}",
+    summary="Update a task (PATCH)",
+    description="Modify title and/or done status for an existing task."
 )
 async def update_task(task_id: int, request: Request):
     target_task = None
